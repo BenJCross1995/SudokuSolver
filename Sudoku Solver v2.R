@@ -287,8 +287,8 @@ box_same_numbers_checker <- function(sudoku_matrix){
 # or column.
 
 # If there is a unique possibility within a vector of possibilities on a row
-# or column then that must be the value in that position e.g. if 123 is in a
-# position and there are no other possible 3's in the row or column then the
+# or column or box then that must be the value in that position e.g. if 123 is in a
+# position and there are no other possible 3's in the row or column or box then the
 # value must be a 3.
 
 solve_sudoku <- function(sudoku_matrix){
