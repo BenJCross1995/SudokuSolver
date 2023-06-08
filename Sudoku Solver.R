@@ -59,7 +59,10 @@ CompleteSudoku <- function(SudokuMatrix){
         SudokuMatrix[row_num, col_num] <- possible_numbers
         found <- found + 1
       } else {
-        print(possible_numbers)
+        temp.df <- cbind('row' = row_num,
+                         'column' = col_num,
+                         'options' = possible_numbers)
+        new <- rbind(new, temp.df)
       }
     #   } else {
     #     orig <- seq(1:9)
@@ -72,6 +75,8 @@ CompleteSudoku <- function(SudokuMatrix){
     new_found <- found - new_found
     
     if(new_found == 0){
+      print("No New Values Found!")
+      print(SudokuMatrix)
       break
       # new <- new %>%
       #   filter(orig != 0)
@@ -95,5 +100,4 @@ CompleteSudoku <- function(SudokuMatrix){
 
 CompleteSudoku(EasySudoku)
 
-CompleteSudoku(ExpertSudoku)
-warnings()
+CompleteSudoku(SudokuMatrix)
