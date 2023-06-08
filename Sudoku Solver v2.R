@@ -38,6 +38,8 @@ ExtremeSudoku <- rbind(c(0, 0, 9, 0, 2, 0, 0, 0, 1),
                        c(0, 0, 0, 2, 0, 0, 0, 0, 4),
                        c(7, 0, 0, 8, 0, 0, 0, 0, 0))
 
+library(stringr)
+
 initial_numbers <- function(sudoku_matrix){
   #' This function creates an initial state sudoku matrix containing values 1-9
   #' in each position. Then takes a user defined matrix and replaces any pre-given
@@ -278,7 +280,127 @@ box_same_numbers_checker <- function(sudoku_matrix){
   return(sudoku_matrix)
 }
 
+row_remove_knowns <- function(sudoku_matrix){
+  for(i in 1:9){
+    # Define the row start using if
+    if(i <= 3){row_start = 1}else if(i <= 6){row_start = 4}else{row_start = 7}
+    # Define the column start using modulo (can also use %in%)
+    if(i %% 3 == 1){col_start = 1} else if(i %% 3 == 2){col_start = 4}else{col_start = 7}
+    # The row and column end values
+    row_end <- row_start + 2
+    col_end <- col_start + 2
+    # Create the box subset
+    box <- sudoku_matrix[row_start:row_end, col_start:col_end]
+    
+    box_vec <- as.vector(box)
+    
+    duplicated_value <- box_vec[duplicated(box_vec)]
+    
+    if(length(duplicated_value) > 0 ){
+      
+      for(i in 1:length(duplicated_value)){
+        full_value <- duplicated_value[i]
+        
+        times_seen <- sum(box == full_value)
+        
+        for(i in 1:3){
+          if(sum(box[i,] == full_value) == times_seen &
+             times_seen == nchar(as.character(full_value))){
+            
+            row_to_check <- row_start - 1 + i
+            
+            values_to_replace <- which(sudoku_matrix[row_to_check,] > 9
+                                       & str_detect(as.character(sudoku_matrix[row_to_check,]),
+                                                    as.character(full_value))
+                                       & as.character(sudoku_matrix[row_to_check,]) != as.character(full_value))
+            
+            sudoku_matrix[row_to_check, values_to_replace] <- as.numeric(
+              str_replace_all(as.character(sudoku_matrix[row_to_check, values_to_replace]),
+                              as.character(full_value), ""))
+          }
+        }
+      }
+    }
+  }
+  return(sudoku_matrix)
+}
 
+col_remove_knowns <- function(sudoku_matrix){
+  for(i in 1:9){
+    # Define the row start using if
+    if(i <= 3){row_start = 1}else if(i <= 6){row_start = 4}else{row_start = 7}
+    # Define the column start using modulo (can also use %in%)
+    if(i %% 3 == 1){col_start = 1} else if(i %% 3 == 2){col_start = 4}else{col_start = 7}
+    # The row and column end values
+    row_end <- row_start + 2
+    col_end <- col_start + 2
+    # Create the box subset
+    box <- sudoku_matrix[row_start:row_end, col_start:col_end]
+    
+    box_vec <- as.vector(box)
+    
+    duplicated_value <- box_vec[duplicated(box_vec)]
+    
+    if(length(duplicated_value) > 0 ){
+      
+      for(i in 1:length(duplicated_value)){
+        full_value <- duplicated_value[i]
+        
+        times_seen <- sum(box == full_value)
+        
+        for(i in 1:3){
+          if(sum(box[,i] == full_value) == times_seen &
+             times_seen == nchar(as.character(full_value))){
+            
+            col_to_check <- col_start - 1 + i
+            
+            values_to_replace <- which(sudoku_matrix[,col_to_check] > 9
+                                       & str_detect(as.character(sudoku_matrix[,col_to_check]),
+                                                    as.character(full_value))
+                                       & as.character(sudoku_matrix[,col_to_check]) != as.character(full_value))
+            
+            sudoku_matrix[values_to_replace,col_to_check] <- as.numeric(
+              str_replace_all(as.character(sudoku_matrix[values_to_replace, col_to_check]),
+                              as.character(full_value), ""))
+          }
+        }
+      }
+    }
+  }
+  return(sudoku_matrix)
+}
+
+single_value_rows <- function(sudoku_matrix){
+  for(i in 1:9){
+    values_to_compare <- sudoku_matrix[i, which(sudoku_matrix[i,] > 9)]
+    values <- unlist(strsplit(as.character(values_to_compare), ""))
+    replacing_values <- names(which(table(values) ==1))
+    if(length(replacing_values) >= 1){
+      for(num in replacing_values){
+        replace_where <- str_detect(as.character(sudoku_matrix[i,]),
+                                    num)
+        sudoku_matrix[i, replace_where == TRUE] <- as.numeric(num)
+      }
+    }
+  }
+  return(sudoku_matrix)
+}
+
+single_value_cols <- function(sudoku_matrix){
+  for(i in 1:9){
+    values_to_compare <- sudoku_matrix[which(sudoku_matrix[,i] > 9), i]
+    values <- unlist(strsplit(as.character(values_to_compare), ""))
+    replacing_values <- names(which(table(values) ==1))
+    if(length(replacing_values) >= 1){
+      for(num in replacing_values){
+        replace_where <- str_detect(as.character(sudoku_matrix[,i]),
+                                    num)
+        sudoku_matrix[replace_where == TRUE, i] <- as.numeric(num)
+      }
+    }
+  }
+  return(sudoku_matrix)
+}
 
 #----REMAINING FUNCTION LOGIC----#
 
@@ -294,13 +416,34 @@ box_same_numbers_checker <- function(sudoku_matrix){
 solve_sudoku <- function(sudoku_matrix){
   initial <- initial_numbers(sudoku_matrix)
   
+  initial_missing <- sum(as.vector(initial) > 9)
+  
+  found <- 0
+  new_found <- 0
   for(i in 1:1000){
+    missing <- sum(as.vector(initial) > 9)
     initial <- row_checker(initial)
     initial <- column_checker(initial)
     initial <- box_checker(initial)
     initial <- box_same_numbers_checker(initial)
-    i <- i +1
-  }
+    initial <- row_remove_knowns(initial)
+    initial <- column_checker(initial)
+    initial <- col_remove_knowns(initial)
+    initial <- row_checker(initial)
+    
+    found <- missing - sum(as.vector(initial) > 9)
+    
+    if(found > 0)
+    { i <- i +1
+    } else {
+      initial <- single_value_rows(initial)
+      initial <- column_checker(initial)
+      initial <- single_value_cols(initial)
+      initial <- row_checker(initial)
+      i <- i+1
+    }
+      
+    }
   return(initial)
 }
 solve_sudoku(EasySudoku)
@@ -310,7 +453,16 @@ solve_sudoku(ExtremeSudoku)
 
 library(sudoku)
 todays_sudoku <- fetchSudokuUK()
-todays_sudoku
+
 
 solve_sudoku(todays_sudoku)
 solveSudoku(todays_sudoku)
+
+sudoku_matrix
+
+
+
+
+
+
+
