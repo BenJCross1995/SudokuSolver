@@ -440,7 +440,7 @@ single_value_cols <- function(sudoku_matrix){
 # value must be a 3.
 
 #----SOLVE SUDOKU----# ####
-solve_sudoku <- function(sudoku_matrix){
+solve_sudoku <- function(sudoku_matrix, quick_scan = TRUE){
   initial <- initial_numbers(sudoku_matrix)
   
   initial_missing <- sum(as.vector(initial) > 9)
@@ -452,11 +452,13 @@ solve_sudoku <- function(sudoku_matrix){
     initial <- row_checker(initial)
     initial <- column_checker(initial)
     initial <- box_checker(initial)
-    initial <- box_same_numbers_checker(initial)
-    initial <- row_remove_knowns(initial)
-    initial <- column_checker(initial)
-    initial <- col_remove_knowns(initial)
-    initial <- row_checker(initial)
+    if(quick_scan == FALSE){
+      initial <- box_same_numbers_checker(initial)
+      initial <- row_remove_knowns(initial)
+      initial <- column_checker(initial)
+      initial <- col_remove_knowns(initial)
+      initial <- row_checker(initial)
+    }
     
     found <- missing - sum(as.vector(initial) > 9, na.rm = TRUE)
     
@@ -478,9 +480,54 @@ solve_sudoku <- function(sudoku_matrix){
 library(sudoku)
 todays_sudoku <- fetchSudokuUK()
 
-solve_sudoku(todays_sudoku)
+sudoku_matrix <- solve_sudoku(todays_sudoku, quick_scan = FALSE)
 solveSudoku(todays_sudoku)
 
 #----TEST USING MY METHOD----# ####
 sudoku_testing(10)
 
+#----BACKTRACKING/BRUTE FORCE METHOD----# ####
+library(matrixStats)
+sudoku_matrix <- solve_sudoku(todays_sudoku, quick_scan = FALSE)
+sudoku_matrix
+still_missing <- which(sudoku_matrix > 9)
+sudoku_matrix[still_missing] <- 0
+# missing_options <- sudoku_matrix[which(sudoku_matrix > 9) ]
+# amount_missing <- length(still_missing)
+# amount_missing
+
+# for(i in 1:amount_missing){
+#   potential_values <- missing_options[i]
+#   potential_value_split <- unlist(strsplit(as.character(potential_values), "")[[1]])
+#   potential_value_split <- as.numeric(potential_value_split)
+# }
+
+for(i in 1:2){
+  missing <- still_missing[i]
+  row_num <- ifelse(missing %% 9 == 0, 9, missing %% 9)
+  col_num <- (missing - 1) %/% 9
+  # Check all numbers
+  for(j in 1:9){
+    sudoku_matrix[missing] <- j
+    print(sudoku_matrix)
+    # row check
+    row_seen <- rowCounts(sudoku_matrix,
+                  rows = row_num,
+                  value = j)
+    if(row_seen > 1){
+      j <- j + 1
+    } else {
+      col_seen <- rowCounts(sudoku_matrix,
+                            cols = col_num,
+                            value = j)
+      if(col_seen > 1){
+        j <- j + 1
+        } else {
+        print("Check Box")
+        }
+    }
+  }
+  # missing loop if j doesn't work
+}
+(1) %% 9
+(72 - 1) %/% 9
