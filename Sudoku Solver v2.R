@@ -1,44 +1,68 @@
-EasySudoku <- rbind(c(4, 0, 0, 8, 7, 0, 0, 2, 0),
-                    c(0, 8, 0, 0, 0, 0, 4, 0, 0),
-                    c(0, 0, 6, 3, 0, 0, 8, 0, 1),
-                    c(7, 0, 0, 1, 0, 0, 0, 8, 0),
-                    c(6, 1, 2, 0, 9, 8, 7, 3, 4),
-                    c(0, 0, 0, 0, 6, 0, 0, 1, 9),
-                    c(1, 9, 3, 4, 2, 7, 5, 0, 0),
-                    c(8, 0, 7, 0, 1, 0, 3, 0, 2),
-                    c(0, 2, 0, 0, 0, 3, 0, 0, 0))
+#--------------------------------------------------------------------------------#
+#------------------------------SUDOKU PUZZLE SOLVER------------------------------#
+#----------------------------------BEN J. CROSS----------------------------------#
+#--------------------------------------------------------------------------------#
 
-MediumSudoku <- rbind(c(0, 0, 7, 0, 5, 0, 0, 0, 2),
-                      c(0, 0, 0, 7, 4, 0, 0, 9, 0),
-                      c(5, 8, 3, 2, 0, 0, 7, 0, 0),
-                      c(0, 5, 0, 0, 0, 2, 0, 0, 0),
-                      c(8, 0, 0, 4, 3, 0, 0, 0, 0),
-                      c(0, 6, 0, 0, 0, 5, 3, 4, 0),
-                      c(6, 0, 0, 3, 0, 0, 9, 0, 0),
-                      c(0, 0, 1, 0, 0, 6, 0, 0, 7),
-                      c(0, 4, 0, 0, 0, 9, 6, 8, 0))
+#----LOAD LIBRARIES----# ####
+suppressPackageStartupMessages({
+  library(stringr)  # Manipulate as vectors
+  library(RCurl)    # To pull a sudoku from online
+  library(jsonlite) # Convert online sudoku to matrix
+})
 
-HardSudoku <- rbind(c(8, 0, 0, 0, 9, 0, 1, 0, 5),
-                    c(0, 4, 5, 0, 0, 2, 0, 0, 0),
-                    c(0, 0, 6, 0, 0, 7, 0, 4, 8),
-                    c(9, 8, 0, 0, 0, 0, 0, 2, 0),
-                    c(0, 0, 0, 9, 0, 6, 0, 0, 3),
-                    c(0, 1, 3, 0, 0, 0, 0, 0, 0),
-                    c(0, 7, 0, 0, 0, 9, 4, 0, 0),
-                    c(0, 0, 9, 5, 0, 0, 0, 0, 6),
-                    c(0, 6, 1, 4, 0, 0, 0, 0, 0))
+#----GET SUDOKU PUZZLE----# ####
 
-ExtremeSudoku <- rbind(c(0, 0, 9, 0, 2, 0, 0, 0, 1),
-                       c(0, 0, 1, 0, 4, 0, 9, 0, 0),
-                       c(0, 5, 6, 0, 0, 0, 0, 0, 0),
-                       c(4, 0, 0, 0, 1, 0, 0, 6, 0),
-                       c(9, 0, 0, 7, 0, 0, 3, 0, 0),
-                       c(0, 0, 0, 4, 5, 0, 0, 0, 7),
-                       c(0, 0, 0, 9, 0, 0, 6, 8, 0),
-                       c(0, 0, 0, 2, 0, 0, 0, 0, 4),
-                       c(7, 0, 0, 8, 0, 0, 0, 0, 0))
+getSudoku <- function(difficulty = "easy"){
+  #' This function pulls a sudoku puzzle from https://sugoku.onrender.com
+  #' in difficulty easy, medium, or hard and returns is as a matrix.
+  #' 
+  #' @param difficulty The difficulty of the desired puzzle
+  #' 
+  #' @return A 9x9 sudoku matrix
+  
+  difficulties <- c("easy", "medium", "hard")
+  if(!difficulty %in% difficulties){
+    print("Enter a difficulty out of 'easy', 'medium' and 'hard'!")
+    break
+  } else {
+    url_to_search <- paste0("https://sugoku.onrender.com/board?difficulty=",
+                            difficulty)
+    board <- getURL(url_to_search)
+    board <- fromJSON(board)$board
+    return(board)
+  }
+}
 
-library(stringr)
+#----METHOD TESTING----# ####
+
+sudoku_testing <- function(tests = 10){
+  difficulties <- c("easy", "medium", "hard")
+  results <- data.frame()
+  for (difficulty in difficulties) {
+    score <- 0
+    for(i in 1:tests){
+      sudoku_matrix <- getSudoku(difficulty)
+      my_solution <- invisible(solve_sudoku(sudoku_matrix))
+      
+      for(i in 1:9){
+        row[i] <- sum(my_solution[i,])
+        col[i] <- sum(my_solution[,i])
+      }
+      
+      if(sum(unique(row)) == 45 
+         & sum(unique(col)) == 45){
+        score <- score + 1
+      }
+    }
+    results <- rbind(results,
+                     cbind('difficulty' = difficulty,
+                           'correct' = score,
+                           'accuracy (%)' = score * 100 / tests))
+  }
+  return(results)
+}
+
+#----PLOT THE INITIAL NUMBERS----# ####
 
 initial_numbers <- function(sudoku_matrix){
   #' This function creates an initial state sudoku matrix containing values 1-9
@@ -58,6 +82,8 @@ initial_numbers <- function(sudoku_matrix){
   
   return(initial)
 }
+
+#----SOLVER FUNCTIONS----# ####
 
 remove_numbers <- function(known_values, unknown_values) {
   #' This function is used to remove unknwon values and replace them with
@@ -402,7 +428,7 @@ single_value_cols <- function(sudoku_matrix){
   return(sudoku_matrix)
 }
 
-#----REMAINING FUNCTION LOGIC----#
+#----REMAINING FUNCTION LOGIC----# ####
 
 # If there are duplicate possibilities in a box and they're all on the same
 # row or column then those values cannot be seen anywhere else in that row
@@ -413,6 +439,7 @@ single_value_cols <- function(sudoku_matrix){
 # position and there are no other possible 3's in the row or column or box then the
 # value must be a 3.
 
+#----SOLVE SUDOKU----# ####
 solve_sudoku <- function(sudoku_matrix){
   initial <- initial_numbers(sudoku_matrix)
   
@@ -420,7 +447,7 @@ solve_sudoku <- function(sudoku_matrix){
   
   found <- 0
   new_found <- 0
-  for(i in 1:1000){
+  for(i in 1:50){
     missing <- sum(as.vector(initial) > 9)
     initial <- row_checker(initial)
     initial <- column_checker(initial)
@@ -431,7 +458,7 @@ solve_sudoku <- function(sudoku_matrix){
     initial <- col_remove_knowns(initial)
     initial <- row_checker(initial)
     
-    found <- missing - sum(as.vector(initial) > 9)
+    found <- missing - sum(as.vector(initial) > 9, na.rm = TRUE)
     
     if(found > 0)
     { i <- i +1
@@ -446,23 +473,14 @@ solve_sudoku <- function(sudoku_matrix){
     }
   return(initial)
 }
-solve_sudoku(EasySudoku)
-solve_sudoku(MediumSudoku)
-solve_sudoku(HardSudoku)
-solve_sudoku(ExtremeSudoku)
 
+#----TEST USING SINGLE SUDOKU----# ####
 library(sudoku)
 todays_sudoku <- fetchSudokuUK()
-
 
 solve_sudoku(todays_sudoku)
 solveSudoku(todays_sudoku)
 
-sudoku_matrix
-
-
-
-
-
-
+#----TEST USING MY METHOD----# ####
+sudoku_testing(10)
 
