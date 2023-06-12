@@ -491,7 +491,9 @@ library(matrixStats)
 sudoku_matrix <- solve_sudoku(todays_sudoku, quick_scan = FALSE)
 sudoku_matrix
 still_missing <- which(sudoku_matrix > 9)
+missing_options <- sudoku_matrix[still_missing]
 sudoku_matrix[still_missing] <- 0
+sudoku_matrix
 # missing_options <- sudoku_matrix[which(sudoku_matrix > 9) ]
 # amount_missing <- length(still_missing)
 # amount_missing
@@ -502,32 +504,58 @@ sudoku_matrix[still_missing] <- 0
 #   potential_value_split <- as.numeric(potential_value_split)
 # }
 
-for(i in 1:2){
+for(i in 1:length(still_missing)){
   missing <- still_missing[i]
+  
+  possible_options <- missing_options[i]
+  possible_options <- unlist(strsplit(as.character(possible_options), "")[[1]])
+  possible_options <- as.numeric(possible_options)
   row_num <- ifelse(missing %% 9 == 0, 9, missing %% 9)
-  col_num <- (missing - 1) %/% 9
+  col_num <- ((missing - 1) %/% 9) + 1
   # Check all numbers
-  for(j in 1:9){
-    sudoku_matrix[missing] <- j
-    print(sudoku_matrix)
+  for(j in 1:length(possible_options)){
+    sudoku_matrix[missing] <- possible_options[j]
     # row check
     row_seen <- rowCounts(sudoku_matrix,
                   rows = row_num,
-                  value = j)
+                  value = possible_options[j])
     if(row_seen > 1){
       j <- j + 1
     } else {
-      col_seen <- rowCounts(sudoku_matrix,
+      col_seen <- colCounts(sudoku_matrix,
                             cols = col_num,
-                            value = j)
+                            value = possible_options[j])
       if(col_seen > 1){
         j <- j + 1
         } else {
-        print("Check Box")
+          # Define the row start using if
+          if(row_num <= 3){row_start = 1}else if(row_num <= 6){row_start = 4}else{row_start = 7}
+          # Define the column start using modulo (can also use %in%)
+          if(col_num %% 3 == 1){col_start = 1} else if(col_num %% 3 == 2){col_start = 4}else{col_start = 7}
+          # The row and column end values
+          row_end <- row_start + 2
+          col_end <- col_start + 2
+          # Create the box subset
+          box <- sudoku_matrix[row_start:row_end, col_start:col_end]
+          
+          box_vec <- as.vector(box)
+          
+          value_count <- matrixStats::count(box_vec, value = possible_options[j])
+          
+          if(value_count > 1){
+            print("Box Failed")
+            if(j < length(possible_options)){
+            j <- j + 1
+            } else {
+              i <- i - 1
+              print(i)
+              j <- 1
+            }
+          } 
+          
         }
     }
   }
   # missing loop if j doesn't work
 }
-(1) %% 9
-(72 - 1) %/% 9
+sudoku_matrix
